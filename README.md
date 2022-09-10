@@ -1,10 +1,8 @@
 ## Micro-MLOps
 
-This code base is target to the blog <under review and will be done in 2 weeks>
-
-## Security 
-
-See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more information.
+The repo contains a set of example code for demo a light-weight MLOps solution base on GitLab-CI.
+And this sample code is corresponding to the blog <under review and will be done in 2 weeks>
+For detail information, please refer to the blog.
 
 ## License
 
