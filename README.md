@@ -1,11 +1,6 @@
 ## Micro-MLOps
 
-TODO: Fill this README out!!! 
-
-Be sure to:
-
-* Change the title in this README
-* Edit your repository description on GitHub
+This code base is target to the blog <under review and will be done in 2 weeks>
 
 ## Security 
 
