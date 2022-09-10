@@ -1,0 +1,24 @@
+
+.ml-train:
+  stage: ml-train
+  script:
+    - pip3 install -r $FEATURE_DEPENDENCIES
+    - | 
+      if [ $FEATURE_TRAIN_ENABLED == "yes" ] 
+      then
+        python3 $FEATURE_TRAIN
+        
+        IFS=","
+        arr=($FEATURE_REPORT)
+        IFS="$OLD_IFS"
+        for s in ${arr[@]}
+        do
+          cp "$s" ${CACHE_DIR}/
+        done
+      fi
+  variables:
+    GIT_CHECKOUT: "true"
+  rules:
+    - if: $CI_STATUS == 'CI_STATUS_PUSH_IN_FEATURE' || $CI_STATUS == 'CI_STATUS_MR' 
+      when: on_success
+    - when: never

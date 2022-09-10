@@ -1,0 +1,37 @@
+
+.ml-report:
+  stage: ml-report
+  before_script:
+    - python3 -V
+  script: 
+    - |
+      if [ ${#FEATURE_REPORT} -gt 0 ] && [ $FEATURE_TRAIN_ENABLED == "yes" ]
+      then
+        IFS=","
+        arr=($FEATURE_REPORT)
+        IFS="$OLD_IFS"
+        for s in ${arr[@]}
+        do
+          if [ -f $CACHE_DIR/$s ] 
+          then
+            if [[ $s =~ ".txt" ]]
+            then
+              cat $CACHE_DIR/$s >> report.md
+            elif [[ $s =~ ".png" ]]
+            then
+              cml-publish $CACHE_DIR/$s --md --title ' ' >> report.md
+            fi
+          fi
+      
+          if [ -f $CACHE_DIR/$s ]
+          then
+            cml-send-comment report.md
+          fi
+        done        
+      fi
+  variables:
+    GIT_CHECKOUT: "true"
+  rules:
+    - if: $CI_STATUS == 'CI_STATUS_PUSH_IN_FEATURE' || $CI_STATUS == 'CI_STATUS_MR'
+      when: always
+    - when: never

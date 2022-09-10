@@ -1,0 +1,10 @@
+{
+    "feature": { 
+        "FEATURE_REPORT": "echo run cml command to generating report here... ",
+        "FEATURE_DEPENDENCIES": "requirements.txt",       
+        "FEATURE_TRAIN_ENABLED": "yes", 
+        "FEATURE_TRAIN": "train.py -d xxx.data",
+        "FEATURE_TEST_ENABLED": "yes",
+        "FEATURE_TEST": "test.py -d xxx.data"   
+    }
+} 

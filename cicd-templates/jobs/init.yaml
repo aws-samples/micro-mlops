@@ -1,0 +1,19 @@
+
+.init:
+  stage: init
+  script:
+    - cat .feature.settings
+    - echo FEATURE_REPORT=$( cat .feature.settings | jq .feature.FEATURE_REPORT -r ) >> build.env
+    - echo FEATURE_DEPENDENCIES=$( cat .feature.settings | jq .feature.FEATURE_DEPENDENCIES -r ) >> build.env
+    - echo FEATURE_TRAIN_ENABLED=$( cat .feature.settings | jq .feature.FEATURE_TRAIN_ENABLED -r ) >> build.env
+    - echo FEATURE_TRAIN=$( cat .feature.settings | jq .feature.FEATURE_TRAIN -r ) >> build.env
+    - echo FEATURE_TEST_ENABLED=$( cat .feature.settings | jq .feature.FEATURE_TEST_ENABLED -r ) >> build.env
+    - echo FEATURE_TEST=$( cat .feature.settings | jq .feature.FEATURE_TEST -r ) >> build.env
+    - echo FEATURE_IMAGE=$( cat Dockerfile | grep "FROM " |  head -n 1 | cut -d " " -f 2 | xargs ) >> build.env
+  artifacts:
+    reports: 
+      dotenv: build.env
+  variables:
+    GIT_CHECKOUT: "true"
+  rules:
+    - when: always

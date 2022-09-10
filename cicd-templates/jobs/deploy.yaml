@@ -1,0 +1,75 @@
+    
+.ml-deploy:
+  stage: ml-deploy
+  script:
+    - echo "starting to deploy..."
+    - pwd
+    - ls -la
+    - |
+      if [ $CI_STATUS == 'CI_STATUS_PUSH_IN_MAIN_BRANCH' ]
+      then
+        ENV='dev'
+        DEPLOY_FILE=.deploy/templates/$ENV/deploy.yaml
+        PODS=1
+        IMAGE_NAME=$DOCKER_REGISTRY/$APP_NAME:${CI_COMMIT_SHORT_SHA:0:7}
+      elif [ $CI_STATUS == 'CI_STATUS_PUSH_IN_RELEASE_BRANCH' ]
+      then
+        echo $CI_COMMIT_BRANCH
+        settingChanged=$( git show $CI_COMMIT_SHORT_SHA --pretty="" --name-only -n 1 | grep settings)
+        echo $settingChanged
+        if [[ $settingChanged =~ ".prod." ]]
+        then
+          # prod!
+          echo prod!!!!
+        else
+          echo non-prod
+        fi
+
+        ENV=$( echo $settingChanged | awk '{split($1, arr, "."); print arr[3]}' )
+        DEPLOY_FILE=.deploy/templates/$ENV/deploy.yaml
+        #PODS=$( cat $settingChanged | jq .$ENV.pods -r )
+        # jq ".[\"key-key\"]" or jq ".\"pre-prod\"" 
+        PODS=1
+
+        export GIT_SSL_NO_VERIFY=true
+        git fetch --all
+        git checkout origin/main
+        #git reset --hard origin/main
+
+        CID=$( git log origin/main..origin/$CI_COMMIT_BRANCH --oneline | tail -n 1 )
+        echo $CID
+        CID=$( git rev-parse --short ${CID:0:7}^ )
+        echo $CID
+        IMAGE_NAME=$DOCKER_REGISTRY/$APP_NAME:$CID
+      else
+        echo "other cases, ignore deploy."
+        exit 0
+      fi
+
+      NS=$NAMESPACE
+      NS=${NS/\//-}--$ENV
+      echo $DEPLOY_FILE 
+      echo $ENV  
+      echo $NS
+      echo $IMAGE_NAME
+      AWS_ACCESS_KEY_ID=$AK
+      AWS_SECRET_ACCESS_KEY=$SK
+      aws configure set AWS_ACCESS_KEY_ID $AK
+      aws configure set AWS_SECRET_ACCESS_KEY $SK      
+      aws eks --region $AWS_DEFAULT_REGION update-kubeconfig --name $CLUSTER_NAME
+      sed -i "s#__namespace__#${NS}#g" ${DEPLOY_FILE}
+      sed -i "s#__appname__#${APP_NAME}#g" ${DEPLOY_FILE}
+      sed -i "s#__imagename__#${IMAGE_NAME}#g" ${DEPLOY_FILE} 
+      sed -i "s#__pods__#${PODS}#g" ${DEPLOY_FILE}
+      cat ${DEPLOY_FILE}
+      kubectl apply -f ${DEPLOY_FILE}
+      
+      echo "done."
+  variables:
+    GIT_CHECKOUT: "true" 
+    GIT_STRATEGY: clone 
+    GIT_DEPTH: "0"
+  rules:
+    - if: $CI_STATUS == 'CI_STATUS_PUSH_IN_MAIN_BRANCH' || $CI_STATUS == 'CI_STATUS_PUSH_IN_RELEASE_BRANCH'
+      when: always
+    - when: never

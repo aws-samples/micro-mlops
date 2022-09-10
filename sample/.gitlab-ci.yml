@@ -1,0 +1,13 @@
+include:
+  - project: 'mlops-aws/gitlab-ci/cicd-templates'
+    ref: main
+    file: 'templates/default-pipeline.yaml'
+
+    
+      
+
+    
+
+  
+
+    

@@ -1,0 +1,29 @@
+
+.mr-created:
+  stage: mr-created
+  script:
+    - echo "starting to run merge request validation..."
+    - pwd
+    - git --version
+    - cd $GIT_CLONE_PATH
+    - git config --global user.email $GITLAB_USER_EMAIL
+    - git config --global user.name $GITLAB_USER_NAME  
+    - git fetch --all
+    - git checkout main
+    - git pull
+    - git checkout $CI_COMMIT_REF_NAME
+    - git pull
+    - git merge main
+    - ls -la
+    - echo "run Integration Testing"
+    - echo python test-intgration.py
+    - echo "done."
+  variables:
+    GIT_STRATEGY: clone
+    GIT_CHECKOUT: "true"    
+  rules:
+    - if: $CI_STATUS != 'CI_STATUS_MR'
+      when: never
+    - when: always
+
+

@@ -1,0 +1,20 @@
+
+.ml-package:
+  stage: ml-package
+  script:
+    - echo "starting to docker build & push..."
+    - docker build -t $DOCKER_REGISTRY/$APP_NAME:${CI_COMMIT_SHORT_SHA:0:7} . 
+    - export AWS_ACCESS_KEY_ID=$AK
+    - export AWS_SECRET_ACCESS_KEY=$SK
+    - aws configure set AWS_ACCESS_KEY_ID $AK
+    - aws configure set AWS_SECRET_ACCESS_KEY $SK      
+    - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $DOCKER_REGISTRY
+    - aws ecr create-repository --repository-name $APP_NAME || true
+    - docker push $DOCKER_REGISTRY/$APP_NAME:${CI_COMMIT_SHORT_SHA:0:7}
+    - echo "done."
+  variables:
+    GIT_CHECKOUT: "true"    
+  rules:
+    - if: $CI_STATUS != 'CI_STATUS_PUSH_IN_MAIN_BRANCH'
+      when: never
+    - when: always

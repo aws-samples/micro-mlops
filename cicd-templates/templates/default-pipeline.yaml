@@ -1,0 +1,149 @@
+include:
+  - project: 'mlops-aws/gitlab-ci/cicd-templates'
+    ref: main
+    file: 'jobs/init.yaml'
+  - project: 'mlops-aws/gitlab-ci/cicd-templates'
+    ref: main
+    file: 'jobs/train.yaml'
+  - project: 'mlops-aws/gitlab-ci/cicd-templates'
+    ref: main
+    file: 'jobs/test.yaml'
+  - project: 'mlops-aws/gitlab-ci/cicd-templates'
+    ref: main
+    file: 'jobs/report.yaml'    
+  - project: 'mlops-aws/gitlab-ci/cicd-templates'
+    ref: main
+    file: 'jobs/mr.yaml'    
+  - project: 'mlops-aws/gitlab-ci/cicd-templates'
+    ref: main
+    file: 'jobs/artifact.yaml'
+  - project: 'mlops-aws/gitlab-ci/cicd-templates'
+    ref: main
+    file: 'jobs/deploy.yaml'
+
+variables:
+  ## global settings
+  GIT_CLONE_PATH: ${CI_BUILDS_DIR}/builds/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}/${CI_PIPELINE_ID}
+  GIT_CHECKOUT: "false"
+  CACHE_DIR: "reports"
+
+  APP_NAME: $CI_PROJECT_PATH_SLUG
+  CONTAINER_PORT: "80"       
+  NAMESPACE: $CI_PROJECT_NAMESPACE
+  IMAGE_TOOLBOX: $DOCKER_REGISTRY_PUBLIC/toolbox
+  IMAGE_CMLDVC:  $DOCKER_REGISTRY_PUBLIC/devconrg/cml
+  DOCKER_HOST: tcp://docker:2375
+
+  CONST_INIT_SHA: '0000000000000000000000000000000000000000'
+  RUN_TRAIN: "no"
+  RUN_ML_TEST: "no"
+  RUN_MR: "no"
+  CI_STATUS: "n/a"
+  DEPLOY_FILE: "n/a"
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event' && $CI_COMMIT_BEFORE_SHA == $CONST_INIT_SHA
+      variables:
+        RUN_MR: "yes"
+        CI_STATUS: "CI_STATUS_MR"
+      when: always
+
+    - if: $CI_COMMIT_BEFORE_SHA == $CONST_INIT_SHA && $CI_PIPELINE_SOURCE == 'push' && $CI_COMMIT_REF_NAME =~ /^release-*/ 
+      variables:
+        CI_STATUS: "CI_STATUS_NEW_BRANCH_FROM_RELEASE"
+      when: always
+
+    - if: $CI_COMMIT_BEFORE_SHA == $CONST_INIT_SHA && $CI_PIPELINE_SOURCE == 'push' && $CI_COMMIT_REF_NAME =~ /main/ 
+      variables:
+        CI_STATUS: "CI_STATUS_NEW_BRANCH_FROM_MAIN"
+      when: always
+
+    - if: $CI_COMMIT_REF_NAME =~ /^release-*/ && $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BEFORE_SHA != $CONST_INIT_SHA
+      variables:
+        CI_STATUS: "CI_STATUS_PUSH_IN_RELEASE_BRANCH"
+      when: always
+
+    - if: $CI_COMMIT_REF_NAME =~ /main/ && $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BEFORE_SHA != $CONST_INIT_SHA
+      variables:
+        CI_STATUS: "CI_STATUS_PUSH_IN_MAIN_BRANCH"
+      when: always      
+
+    - if: $CI_COMMIT_REF_NAME =~ /^feature-*/  && $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BEFORE_SHA != $CONST_INIT_SHA
+      variables:
+        CI_STATUS: "CI_STATUS_PUSH_IN_FEATURE"
+      when: always      
+
+    - if: " $CI_PIPELINE_SOURCE == 'web' "
+      when: never
+
+    #- when: never
+
+stages:
+  - init
+  - ml-train
+  - ml-test
+  - ml-report
+  - mr-created
+  - ml-package
+  - ml-deploy
+
+cache:
+  paths:
+    - ${CACHE_DIR}
+before_script:
+  - export
+
+init:
+  image: 
+    name: ${IMAGE_TOOLBOX}
+    entrypoint: [""]
+  extends: .init
+  before_script:
+    - export
+    - mkdir ${CACHE_DIR} || true
+
+ml-train:
+  image: ${FEATURE_IMAGE}
+  extends: .ml-train
+
+ml-report:
+  image: ${IMAGE_CMLDVC}
+  extends: .ml-report
+
+ml-test:
+  image: ${FEATURE_IMAGE}
+  extends: .ml-test
+  
+mr-created:
+  image: 
+    name: ${IMAGE_TOOLBOX}
+    entrypoint: [""]
+  extends: .mr-created
+
+ml-package:
+  image: 
+    name: ${IMAGE_TOOLBOX}
+    entrypoint: [""]
+  services:
+    - name: docker:20-dind
+      alias: docker
+      command: ["--tls=false"]
+  variables:
+    DOCKER_DRIVER: overlay2
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+  before_script:
+    - aws --version
+    - echo RUN_TRAIN=$RUN_TRAIN
+    - echo RUN_ML_TEST=$RUN_ML_TEST
+  extends: .ml-package
+
+ml-deploy:
+  image: 
+    name: ${IMAGE_TOOLBOX}
+    entrypoint: [""]
+  variables:
+       
+  extends: .ml-deploy  
+

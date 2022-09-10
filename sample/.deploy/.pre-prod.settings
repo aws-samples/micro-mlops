@@ -1,0 +1,7 @@
+{
+	"pre-prod": {       
+		"release": "2.5.0", 
+        "nonce": "xxxx"
+	} 
+}
+

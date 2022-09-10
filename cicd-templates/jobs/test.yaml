@@ -1,0 +1,18 @@
+
+.ml-test:
+  stage: ml-test
+  before_script:
+    - ls ${CACHE_DIR}
+    - pip3 install -r $FEATURE_DEPENDENCIES
+  script:
+    - | 
+      if [ $FEATURE_TEST_ENABLED == "yes" ] 
+      then
+        python3 test/$FEATURE_TEST
+      fi
+  variables:
+    GIT_CHECKOUT: "true"    
+  rules:
+    - if: $CI_STATUS == 'CI_STATUS_PUSH_IN_FEATURE' || $CI_STATUS == 'CI_STATUS_MR'
+      when: on_success
+    - when: never
